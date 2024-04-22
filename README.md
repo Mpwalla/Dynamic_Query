@@ -1,2 +1,4 @@
 # Dynamic_Query
-Query to dynamically pull the columns and data from an old table and then create a new table and insert the data.
+This is a query that I have been working on that the supervisor over the BI team wanted done.
+
+They wanted a query that would dynamically pull the columns and data from an old table and insert it into a new table and they wanted it done dynamically.
