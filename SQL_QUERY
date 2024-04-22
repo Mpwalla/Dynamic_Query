@@ -1,4 +1,4 @@
-ALTER PROCEDURE CreateNewTableFromExisting
+CREATE PROCEDURE CreateNewTableFromExisting
     @existingTableName NVARCHAR(100),
     @newTableName NVARCHAR(100)
 AS
@@ -62,4 +62,4 @@ WHERE TABLE_NAME = @oldtable;
     
     PRINT 'Complete';
 END;
---Exec  CreateNewTableFromExisting  'ASSET', 'TestColum';
+--Exec  CreateNewTableFromExisting  'OLDTABLE', 'NEWTABLE';
