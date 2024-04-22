@@ -1,0 +1,65 @@
+ALTER PROCEDURE CreateNewTableFromExisting
+    @existingTableName NVARCHAR(100),
+    @newTableName NVARCHAR(100)
+AS
+BEGIN
+	Declare @Create_Query nvarchar(max)
+    DECLARE @Drop_Query NVARCHAR(MAX);
+    DECLARE @newschema NVARCHAR(100);
+    DECLARE @oldschema NVARCHAR(100);
+    DECLARE @oldtable NVARCHAR(100);
+    DECLARE @newtable NVARCHAR(100);
+    DECLARE @sql_insert NVARCHAR(MAX);
+    DECLARE @oldDatabase NVARCHAR(100);
+    Declare @newDatabase NVARCHAR(100);
+	
+    SET @Create_Query = N'CREATE TABLE ' + QUOTENAME(@newTableName) + ' (';
+    SET @Newschema = 'NEWSCHEMA';
+    SET @oldschema = 'OLDSCHEMA';    
+    SET @oldtable = 'OLDTABLE';
+    SET @newtable = 'NEWTABLE';
+    SET @oldDatabase = 'OLDDATABASE';
+	SET @newDatabase = 'NEWDATABASE'
+
+    -- Drop the table if it exists
+    PRINT 'Dropping existing table if it exists...';
+	SET @Drop_Query = N'DROP TABLE IF EXISTS ' + QUOTENAME(@newTableName);
+	EXEC sp_executesql @Drop_Query;
+	PRINT 'Table dropped successfully.';
+    
+    -- Dynamically retrieve column information and construct the CREATE TABLE statement
+    PRINT 'Constructing CREATE TABLE statement...';
+    SELECT @Create_Query = @Create_Query +
+       QUOTENAME(COLUMN_NAME) + ' ' + 
+       CASE 
+          WHEN DATA_TYPE IN ('nvarchar', 'varchar', 'char', 'nchar','varbinary') THEN DATA_TYPE + '(' + 
+               CASE WHEN CHARACTER_MAXIMUM_LENGTH = -1 THEN 'max' ELSE CAST(CHARACTER_MAXIMUM_LENGTH AS VARCHAR(10)) END + ')'
+			WHEN DATA_TYPE = 'numeric' THEN DATA_TYPE + '(' + CAST(NUMERIC_PRECISION AS VARCHAR(10)) + ',' + CAST(NUMERIC_SCALE AS VARCHAR(10)) + ')'
+          ELSE DATA_TYPE 
+       END + ','
+FROM oldDatabase.INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = @oldtable;
+
+    SET @Create_Query = LEFT(@Create_Query, LEN(@Create_Query) - 1) + ')';
+
+    -- Print the generated CREATE TABLE SQL for debugging
+    PRINT 'Generated CREATE TABLE SQL:';
+    --PRINT @sql;
+
+    -- Execute the CREATE TABLE statement
+    PRINT 'Executing CREATE TABLE statement...';
+    EXEC sp_executesql @Create_Query;
+    PRINT 'CREATE TABLE statement executed successfully.';
+
+    -- Construct and execute the INSERT INTO statement
+    SET @sql_insert = 
+        'INSERT INTO ' + QUOTENAME(@newDatabase) + '.' + QUOTENAME(@Newschema) + '.' + QUOTENAME(@newtable) +
+        ' SELECT * FROM ' + QUOTENAME(@oldDatabase) + '.' + QUOTENAME(@oldschema) + '.' + QUOTENAME(@oldtable);
+	
+    PRINT 'Executing INSERT INTO statement...';
+    EXEC sp_executesql @sql_insert;
+    PRINT 'INSERT INTO statement executed successfully.';
+    
+    PRINT 'Complete';
+END;
+--Exec  CreateNewTableFromExisting  'ASSET', 'TestColum';
