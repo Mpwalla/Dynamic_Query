@@ -1,50 +1,73 @@
-CREATE PROCEDURE CreateNewTableFromExisting
-    @existingTableName NVARCHAR(100),
-    @newTableName NVARCHAR(100)
+ALTER PROCEDURE CreateNewTableFromExisting
+	@oldserver NVARCHAR(100),
+	@oldDatabase NVARCHAR(100),
+	@oldschema NVARCHAR(100),
+	@oldtable NVARCHAR(100),
+	@newserver NVARCHAR(100),
+	@newDatabase NVARCHAR(100),
+	@newschema NVARCHAR(100),
+	@newtable NVARCHAR(100)
+  
 AS
 BEGIN
-	Declare @Create_Query nvarchar(max)
+	Declare @Create_Query nvarchar(max);
     DECLARE @Drop_Query NVARCHAR(MAX);
-    DECLARE @newschema NVARCHAR(100);
-    DECLARE @oldschema NVARCHAR(100);
-    DECLARE @oldtable NVARCHAR(100);
-    DECLARE @newtable NVARCHAR(100);
-    DECLARE @sql_insert NVARCHAR(MAX);
-    DECLARE @oldDatabase NVARCHAR(100);
-    Declare @newDatabase NVARCHAR(100);
+	DECLARE @ConstraintList NVARCHAR(MAX);
+	Declare  @sql_insert NVARCHAR(MAX);
 	
-    SET @Create_Query = N'CREATE TABLE ' + QUOTENAME(@newTableName) + ' (';
-    SET @Newschema = 'NEWSCHEMA';
-    SET @oldschema = 'OLDSCHEMA';    
-    SET @oldtable = 'OLDTABLE';
-    SET @newtable = 'NEWTABLE';
-    SET @oldDatabase = 'OLDDATABASE';
-	SET @newDatabase = 'NEWDATABASE'
+    SET @Create_Query = N'CREATE TABLE ' + @newtable + ' (';
+  
 
     -- Drop the table if it exists
     PRINT 'Dropping existing table if it exists...';
-	SET @Drop_Query = N'DROP TABLE IF EXISTS ' + QUOTENAME(@newTableName);
+	SET @Drop_Query = N'DROP TABLE IF EXISTS ' +@newtable;
 	EXEC sp_executesql @Drop_Query;
 	PRINT 'Table dropped successfully.';
     
     -- Dynamically retrieve column information and construct the CREATE TABLE statement
-    PRINT 'Constructing CREATE TABLE statement...';
-    SELECT @Create_Query = @Create_Query +
-       QUOTENAME(COLUMN_NAME) + ' ' + 
+    
+   
+
+-- Constructing column list
+DECLARE @ColumnList NVARCHAR(MAX);
+
+SELECT @ColumnList = COALESCE(@ColumnList + ',', '') +
+       COLUMN_NAME + ' ' + 
        CASE 
           WHEN DATA_TYPE IN ('nvarchar', 'varchar', 'char', 'nchar','varbinary') THEN DATA_TYPE + '(' + 
                CASE WHEN CHARACTER_MAXIMUM_LENGTH = -1 THEN 'max' ELSE CAST(CHARACTER_MAXIMUM_LENGTH AS VARCHAR(10)) END + ')'
-			WHEN DATA_TYPE = 'numeric' THEN DATA_TYPE + '(' + CAST(NUMERIC_PRECISION AS VARCHAR(10)) + ',' + CAST(NUMERIC_SCALE AS VARCHAR(10)) + ')'
+          WHEN DATA_TYPE = 'numeric' THEN DATA_TYPE + '(' + CAST(NUMERIC_PRECISION AS VARCHAR(10)) + ',' + CAST(NUMERIC_SCALE AS VARCHAR(10)) + ')'
           ELSE DATA_TYPE 
-       END + ','
-FROM oldDatabase.INFORMATION_SCHEMA.COLUMNS
+       END
+FROM maxprod_stage.INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = @oldtable;
+
+-- Constructing constraints
+
+
+SELECT @ConstraintList = COALESCE(@ConstraintList + ',', '') +
+   CASE WHEN tc.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 'CONSTRAINT ' + tc.CONSTRAINT_NAME + ' PRIMARY KEY (' + ccu.COLUMN_NAME + ')'
+        WHEN tc.CONSTRAINT_TYPE = 'UNIQUE' THEN 'CONSTRAINT ' + tc.CONSTRAINT_NAME + ' UNIQUE (' + ccu.COLUMN_NAME + ')'
+        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN 'CONSTRAINT ' + tc.CONSTRAINT_NAME + ' FOREIGN KEY (' + ccu.COLUMN_NAME + ') REFERENCES ' + kcu.TABLE_NAME + '(' + kcu.COLUMN_NAME + ')'
+        ELSE '' END
+FROM maxprod_stage.INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+INNER JOIN maxprod_stage.INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
+INNER JOIN maxprod_stage.INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu ON kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+WHERE tc.TABLE_NAME = @oldtable;
+
+-- Constructing the final CREATE TABLE statement
+SET @Create_Query = 'CREATE TABLE ' + @newtable + ' (' + 
+                    ISNULL(@ColumnList, '') + 
+                    ISNULL(@ConstraintList, '') + 
+                    ')';
+
+
 
     SET @Create_Query = LEFT(@Create_Query, LEN(@Create_Query) - 1) + ')';
 
     -- Print the generated CREATE TABLE SQL for debugging
     PRINT 'Generated CREATE TABLE SQL:';
-    --PRINT @sql;
+    print @Create_Query;
 
     -- Execute the CREATE TABLE statement
     PRINT 'Executing CREATE TABLE statement...';
@@ -53,8 +76,8 @@ WHERE TABLE_NAME = @oldtable;
 
     -- Construct and execute the INSERT INTO statement
     SET @sql_insert = 
-        'INSERT INTO ' + QUOTENAME(@newDatabase) + '.' + QUOTENAME(@Newschema) + '.' + QUOTENAME(@newtable) +
-        ' SELECT * FROM ' + QUOTENAME(@oldDatabase) + '.' + QUOTENAME(@oldschema) + '.' + QUOTENAME(@oldtable);
+        'INSERT INTO '+ @newserver + '.'+ @newDatabase + '.' + @Newschema + '.' + @newtable +
+        ' SELECT * FROM '+ @oldserver +'.' + @oldDatabase + '.' + @oldschema + '.' + @oldtable;
 	
     PRINT 'Executing INSERT INTO statement...';
     EXEC sp_executesql @sql_insert;
@@ -62,4 +85,4 @@ WHERE TABLE_NAME = @oldtable;
     
     PRINT 'Complete';
 END;
---Exec  CreateNewTableFromExisting  'OLDTABLE', 'NEWTABLE';
+--Exec  CreateNewTableFromExisting  'ASSET', 'TestColum';
