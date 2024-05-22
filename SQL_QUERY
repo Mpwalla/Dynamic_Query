@@ -85,4 +85,4 @@ SET @Create_Query = 'CREATE TABLE ' + @newtable + ' (' +
     
     PRINT 'Complete';
 END;
---Exec  CreateNewTableFromExisting  'ASSET', 'TestColum';
+
