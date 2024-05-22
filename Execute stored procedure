@@ -1,0 +1,9 @@
+Exec  CreateNewTableFromExisting  
+'' -- Enter Old Server
+,''-- Enter Old Database
+,'' -- Enter Old Schema  
+,'' -- Enter Old table
+,'' --Enter New Server
+,'' -- ENter New Database
+,''   --Enter Old Schema
+,''-- Enter New table
