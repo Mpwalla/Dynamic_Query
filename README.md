@@ -1,4 +1,3 @@
-## I have changed any table names and database names to protect the privacy of my company I work for.
 
 # Dynamic_Query
 This is a query that I have been working on that the supervisor over the BI team wanted done.
