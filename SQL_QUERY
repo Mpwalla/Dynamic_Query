@@ -1,11 +1,11 @@
 ALTER PROCEDURE CreateNewTableFromExisting
-	@oldserver NVARCHAR(100),
-	@oldDatabase NVARCHAR(100),
-	@oldschema NVARCHAR(100),
-	@oldtable NVARCHAR(100),
-	@newserver NVARCHAR(100),
-	@newDatabase NVARCHAR(100),
-	@newschema NVARCHAR(100),
+	@oldserver NVARCHAR(100)
+	,@oldDatabase NVARCHAR(100)
+	,@oldschema NVARCHAR(100)
+	,@oldtable NVARCHAR(100)
+	,@newserver NVARCHAR(100)
+	,@newDatabase NVARCHAR(100)
+	,@newschema NVARCHAR(100)
 	@newtable NVARCHAR(100)
   
 AS
