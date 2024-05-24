@@ -23,10 +23,7 @@ BEGIN
 	SET @Drop_Query = N'DROP TABLE IF EXISTS ' +@newtable;
 	EXEC sp_executesql @Drop_Query;
 	PRINT 'Table dropped successfully.';
-    
-    -- Dynamically retrieve column information and construct the CREATE TABLE statement
-    
-   
+       
 
 -- Constructing column list
 DECLARE @ColumnList NVARCHAR(MAX);
@@ -67,7 +64,7 @@ SET @Create_Query = 'CREATE TABLE ' + @newtable + ' (' +
 
     -- Print the generated CREATE TABLE SQL for debugging
     PRINT 'Generated CREATE TABLE SQL:';
-    print @Create_Query;
+   
 
     -- Execute the CREATE TABLE statement
     PRINT 'Executing CREATE TABLE statement...';
